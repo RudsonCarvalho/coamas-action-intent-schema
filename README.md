@@ -25,14 +25,16 @@ If you use this schema in your work, please cite the Zenodo record:
 
 ```
 Carvalho, R.K.S. (2026). COA-MAS Action Intent Schema v1.0.0.
-Zenodo. doi.org/10.5281/zenodo.[DOI_PENDING]
+Zenodo. doi.org/10.5281/zenodo.19376419
 ```
+
+📄 **Zenodo record:** https://zenodo.org/records/19376420
 
 ## Related Publications
 
 **COA-MAS v2 — A Meta-Framework for Cross-Domain Multi-Agent Governance**  
 Working Paper v0.3 — this schema is a supplementary artifact  
-→ [10.5281/zenodo.19376419](https://doi.org/10.5281/zenodo.19376420)
+→ [doi.org/10.5281/zenodo.19376738](https://zenodo.org/records/19376739)
 
 **COA-MAS v1 — Cognitive Organization Architecture for Multi-Agent Systems**  
 → [doi.org/10.5281/zenodo.19057202](https://doi.org/10.5281/zenodo.19057202)
