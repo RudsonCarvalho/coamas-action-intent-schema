@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coamas.org/schemas/action-intent/v1.0.0",
+  "title": "COA-MAS Action Intent",
+  "description": "The Action Intent is the universal artifact of the COA-MAS cross-domain governance meta-framework. It is a standardized, cryptographically signed declaration of who is acting, under what mandate, toward what goal, and with what declared effect — sufficient for any receiving domain's GOV-RISK to evaluate sovereignty using its own Executable Culture, containing none of Domain A's internal policy, prompts, or risk weights. The Action Intent is the 'passport' of the COA-MAS federation. Published as supplementary artifact to: COA-MAS v2 — A Meta-Framework for Cross-Domain Multi-Agent Governance. Working Paper v0.3. Extends: doi.org/10.5281/zenodo.19057202",
+  "version": "1.0.0",
+  "author": "Rudson Kiyoshi Souza Carvalho",
+  "affiliation": "Independent Researcher, Brazil",
+  "date": "2026-03-31",
+  "license": "CC BY 4.0",
+  "type": "object",
+  "required": ["intent_id","schema_version","issued_at","expires_at","origin","target","action","dpop_public_key"],
+  "additionalProperties": false,
+  "properties": {
+    "intent_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this intent request. Used for idempotency and audit correlation. MUST be a UUID v4.",
+      "example": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of the Action Intent schema. Allows GOV-RISK-B to reject intents using incompatible schema versions."
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of intent creation by GOV-RISK-A."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expiry of this intent request. GOV-RISK-B MUST reject intents received after this timestamp. Recommended maximum: 60 seconds from issued_at."
+    },
+    "origin": {
+      "type": "object",
+      "description": "Identity and delegation chain of the requesting agent. Equivalent to the passport identity section. MUST NOT contain Domain A's internal policy, prompt, or Executable Culture.",
+      "required": ["agent_spiffe_id","gov_risk_spiffe_id","gov_risk_signature","originating_goal"],
+      "additionalProperties": false,
+      "properties": {
+        "agent_spiffe_id": {
+          "type": "string",
+          "pattern": "^spiffe://[a-zA-Z0-9._-]+(/[a-zA-Z0-9._/-]*)?$",
+          "description": "SPIFFE ID of the requesting agent. MUST be verifiable against Domain A's Trust Bundle registered during SPIFFE Federation Setup.",
+          "example": "spiffe://domain-a.org/agent/db-cleaner-01"
+        },
+        "gov_risk_spiffe_id": {
+          "type": "string",
+          "pattern": "^spiffe://[a-zA-Z0-9._-]+(/[a-zA-Z0-9._/-]*)?$",
+          "description": "SPIFFE ID of the GOV-RISK-A instance that signed this intent. Attests that the Non-Improvement Theorem was enforced internally and the agent's mandate was verified before signing.",
+          "example": "spiffe://domain-a.org/gov-risk/layer3"
+        },
+        "gov_risk_signature": {
+          "type": "string",
+          "description": "JWS detached signature of the canonical Action Intent payload by GOV-RISK-A. Canonicalization MUST follow RFC 8785. This signature is the cryptographic proof that Domain A attests to the declared intent. If Domain A misrepresents the intent, this signature becomes irrefutable forensic evidence.",
+          "example": "eyJhbGciOiJFUzI1NiIsImtpZCI6InNwaWZmZTovL2RvbWFpbi1hLm9yZy9nb3Ytcmlzay9sYXllcjMifQ..3a4b5c6d"
+        },
+        "originating_goal": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500,
+          "description": "High-level human-readable description of the task goal. NOT the internal prompt. GOV-RISK-B uses this alongside action.description to evaluate semantic proportionality.",
+          "example": "Scheduled maintenance: remove expired user sessions older than 90 days to reclaim storage capacity."
+        },
+        "delegation_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Number of agent-to-agent delegation steps from the root human mandate. Depth 0 means direct human mandate. GOV-RISK-B may apply stricter evaluation to deeply delegated agents.",
+          "example": 2
+        },
+        "root_mandate_id": {
+          "type": "string",
+          "description": "Optional. The Action Claim ID from COA-MAS v1 that authorized the root operation in Domain A. Recorded for forensic traceability only — GOV-RISK-B does not validate this value.",
+          "example": "ac-2026-03-31-00421"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "description": "What Domain B resource the agent intends to interact with.",
+      "required": ["tool_uri","operation_type"],
+      "additionalProperties": false,
+      "properties": {
+        "tool_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Fully qualified URI of the target tool or endpoint in Domain B. MUST match a tool URI in Domain B's OpenAPI contract.",
+          "example": "https://api.domain-b.org/tools/database/sessions"
+        },
+        "operation_type": {
+          "type": "string",
+          "enum": ["read","write","delete","execute","spawn","configure"],
+          "description": "Coarse-grained operation category. Used by GOV-RISK-B for initial routing and Federation Policy mode resolution. MUST accurately reflect the nature of the operation.",
+          "example": "delete"
+        },
+        "resource_scope": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Human-readable description of the resource scope. Domain B evaluates this in its own semantic space. MUST be specific enough for GOV-RISK-B to assess blast radius.",
+          "example": "User session records in the authentication database with last_active timestamp older than 90 days."
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "description": "The declaration of intent. Domain A's declarations are not trusted — they are attested. False declarations become forensic evidence.",
+      "required": ["description","expected_effect"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 1000,
+          "description": "Structured natural language description of the intended action. NOT a prompt — a declaration. Must describe WHAT will happen, to WHAT resource, with WHAT scope and estimated magnitude.",
+          "example": "Delete all rows from the sessions table where last_active < NOW() - INTERVAL 90 DAY. Estimated row count: 12,000. No schema changes. No cascade effects on foreign keys."
+        },
+        "expected_effect": {
+          "type": "object",
+          "description": "Agent's declared expectation of the action's real-world effect in Domain B. Domain B may disagree with any declaration — that is Domain B's sovereign right.",
+          "required": ["reversibility","estimated_scope","data_sensitivity"],
+          "additionalProperties": false,
+          "properties": {
+            "reversibility": {
+              "type": "string",
+              "enum": ["reversible","partially_reversible","irreversible"],
+              "description": "reversible: fully undoable without data loss. partially_reversible: undoable with some effort or state loss. irreversible: cannot be undone without backup restoration.",
+              "example": "irreversible"
+            },
+            "estimated_scope": {
+              "type": "string",
+              "enum": ["single_record","bounded_set","full_table","cross_table","infrastructure","external"],
+              "description": "Estimated blast radius. single_record: one identifiable record. bounded_set: constrained subset. full_table: all records in a table. cross_table: multiple tables or services. infrastructure: network, IAM, certificates, configuration. external: outside Domain B's primary infrastructure.",
+              "example": "bounded_set"
+            },
+            "data_sensitivity": {
+              "type": "string",
+              "enum": ["none","internal","confidential","pii","regulated"],
+              "description": "none: no organizational data. internal: non-regulated organizational data. confidential: sensitive internal data. pii: Personally Identifiable Information. regulated: subject to GDPR, LGPD, HIPAA, PCI-DSS, etc. Domain B may assign a higher classification than declared.",
+              "example": "internal"
+            }
+          }
+        },
+        "preconditions": {
+          "type": "array",
+          "maxItems": 10,
+          "description": "Optional. Conditions that must hold in Domain B for the action to be safe. GOV-RISK-B may use these for pre-flight checks.",
+          "items": { "type": "string", "maxLength": 200 },
+          "example": [
+            "Sessions table exists and is accessible",
+            "No active transactions referencing target rows",
+            "Backup completed within last 24 hours"
+          ]
+        }
+      }
+    },
+    "dpop_public_key": {
+      "type": "object",
+      "description": "Ephemeral public key for this session. GOV-RISK-B embeds its SHA-256 thumbprint (cnf.jkt per RFC 9449) in the issued Action Claim, binding execution to the agent holding the private key. MUST be freshly generated per intent.",
+      "required": ["kty","crv","x","y"],
+      "additionalProperties": false,
+      "properties": {
+        "kty": { "type": "string", "const": "EC" },
+        "crv": {
+          "type": "string",
+          "enum": ["P-256","P-384","P-521"],
+          "description": "P-256 recommended for balance of security and performance."
+        },
+        "x": { "type": "string", "description": "Base64url-encoded x coordinate.", "example": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU" },
+        "y": { "type": "string", "description": "Base64url-encoded y coordinate.", "example": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0" }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Optional governance-relevant environmental context. MUST NOT contain Domain A's internal policy or prompt data.",
+      "additionalProperties": false,
+      "properties": {
+        "execution_environment": {
+          "type": "string",
+          "enum": ["production","staging","development","disaster_recovery"],
+          "description": "The environment in Domain B where the action will execute.",
+          "example": "production"
+        },
+        "urgency": {
+          "type": "string",
+          "enum": ["routine","elevated","critical"],
+          "description": "Declared urgency. Elevated or critical urgency does NOT relax security requirements.",
+          "example": "routine"
+        },
+        "human_in_loop": {
+          "type": "boolean",
+          "description": "Whether a human operator in Domain A is actively supervising this agent's session.",
+          "example": false
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "_comment": "Example 1: Routine session cleanup — Mode 1 Sovereign Visa expected",
+      "intent_id": "550e8400-e29b-41d4-a716-446655440000",
+      "schema_version": "1.0.0",
+      "issued_at": "2026-03-31T14:22:01Z",
+      "expires_at": "2026-03-31T14:23:01Z",
+      "origin": {
+        "agent_spiffe_id": "spiffe://domain-a.org/agent/db-cleaner-01",
+        "gov_risk_spiffe_id": "spiffe://domain-a.org/gov-risk/layer3",
+        "gov_risk_signature": "eyJhbGciOiJFUzI1NiJ9..3a4b5c6d",
+        "originating_goal": "Scheduled maintenance: remove expired user sessions older than 90 days to reclaim storage capacity.",
+        "delegation_depth": 2,
+        "root_mandate_id": "ac-2026-03-31-00421"
+      },
+      "target": {
+        "tool_uri": "https://api.domain-b.org/tools/database/sessions",
+        "operation_type": "delete",
+        "resource_scope": "User session records in the authentication database with last_active timestamp older than 90 days."
+      },
+      "action": {
+        "description": "Delete all rows from the sessions table where last_active < NOW() - INTERVAL 90 DAY. Estimated row count: 12,000. No schema changes. No cascade effects on foreign keys.",
+        "expected_effect": {
+          "reversibility": "irreversible",
+          "estimated_scope": "bounded_set",
+          "data_sensitivity": "internal"
+        },
+        "preconditions": [
+          "Sessions table exists and is accessible",
+          "No active transactions referencing target rows",
+          "Backup completed within last 24 hours"
+        ]
+      },
+      "dpop_public_key": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+        "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0"
+      },
+      "context": {
+        "execution_environment": "production",
+        "urgency": "routine",
+        "human_in_loop": false
+      }
+    },
+    {
+      "_comment": "Example 2: Read-only analytics — Mode 1 multiple-use Visa expected",
+      "intent_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "schema_version": "1.0.0",
+      "issued_at": "2026-03-31T10:00:00Z",
+      "expires_at": "2026-03-31T10:01:00Z",
+      "origin": {
+        "agent_spiffe_id": "spiffe://domain-a.org/agent/analytics-reporter",
+        "gov_risk_spiffe_id": "spiffe://domain-a.org/gov-risk/layer3",
+        "gov_risk_signature": "eyJhbGciOiJFUzI1NiJ9..9f8e7d6c",
+        "originating_goal": "Generate weekly active user report for product team dashboard.",
+        "delegation_depth": 1
+      },
+      "target": {
+        "tool_uri": "https://api.domain-b.org/tools/metrics/active-users",
+        "operation_type": "read",
+        "resource_scope": "Aggregated daily active user counts for the past 7 days, grouped by region. No individual user records."
+      },
+      "action": {
+        "description": "Query the active_users_daily_aggregate view for rows where date >= NOW() - INTERVAL 7 DAY. Returns aggregated counts only — no PII, no individual identifiers.",
+        "expected_effect": {
+          "reversibility": "reversible",
+          "estimated_scope": "bounded_set",
+          "data_sensitivity": "internal"
+        }
+      },
+      "dpop_public_key": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "aKDdj4NvfPPyHkGm2sR3tL8wXuYn5oQqBvCzEpMiSjT",
+        "y": "RpLnKwVxMtHcFdNqUeYbOsGiTjZaWvBuCyDxEfHgIjK"
+      },
+      "context": {
+        "execution_environment": "production",
+        "urgency": "routine",
+        "human_in_loop": false
+      }
+    }
+  ],
+  "implementation_notes": {
+    "jws_envelope": "In production, the entire Action Intent JSON object MUST be transmitted as the payload of a JWS envelope signed by GOV-RISK-A. The JWS header MUST contain alg (ES256 recommended) and kid referencing the GOV-RISK-A SPIFFE ID. gov_risk_signature within the payload is the detached signature for independent forensic verification.",
+    "canonicalization": "Before signing, the Action Intent MUST be canonicalized per RFC 8785 (JSON Canonicalization Scheme) to ensure signature stability across serialization implementations.",
+    "action_claim_response": "GOV-RISK-B responds with a COA-MAS v1 Action Claim extended with: cnf.jkt (SHA-256 thumbprint of dpop_public_key), origin_intent_id, and use_policy (single_use, ttl_seconds, max_uses). The Action Claim is signed by GOV-RISK-B's own key — AASG-B always validates a locally-trusted signature.",
+    "federation_mode_resolution": "GOV-RISK-B resolves the applicable federation mode by taking the maximum (most restrictive) across mode_by_operation, mode_by_resource_class, and mode_by_environment from the pre-negotiated Federation Policy.",
+    "rate_limiting": "Domain B MUST rate-limit POST /gov-risk/authorize by origin agent_spiffe_id. Domains without established SPIFFE peering MUST receive HTTP 403 before any cognitive evaluation occurs."
+  }
+}
