@@ -32,7 +32,7 @@ Zenodo. doi.org/10.5281/zenodo.[DOI_PENDING]
 
 **COA-MAS v2 — A Meta-Framework for Cross-Domain Multi-Agent Governance**  
 Working Paper v0.3 — this schema is a supplementary artifact  
-→ [DOI pending — to be added upon publication]
+→ [10.5281/zenodo.19376419](https://doi.org/10.5281/zenodo.19376420)
 
 **COA-MAS v1 — Cognitive Organization Architecture for Multi-Agent Systems**  
 → [doi.org/10.5281/zenodo.19057202](https://doi.org/10.5281/zenodo.19057202)
